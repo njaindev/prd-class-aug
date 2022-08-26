@@ -76,3 +76,34 @@ jobs:
         with:
             name: artifacts
             path: check-in-app/target/*.jar
+
+# Steps for executing the deployment against Cloudhub Anypoint Platform
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:    
+    - uses: actions/checkout@v3
+    - uses: actions/cache@v3
+      with:
+        path: ~/.m2/repository
+        key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+        restore-keys: |
+          ${{ runner.os }}-maven-
+    - uses: actions/download-artifact@v3
+      with:
+        name: artifacts
+
+    - uses: s4u/maven-settings-action@v2.6.0
+      with:
+        servers: |
+          [{
+              "id": "anypoint-exchange-v3",
+              "username": "${{ secrets.ANYPOINT_USERNAME }}",
+              "password": "${{ secrets.ANYPOINT_PASSWORD }}"
+          }]
+    - name: Deploy to CloudHub
+      env:
+        AUTHOR: "Nihit"
+      run: |
+        artifactName=$(ls *.jar | head -1)
+        mvn deploy --file check-in-app/pom.xml -DmuleDeploy -Dap.clientid=${{ secrets.AP_CLIENT_ID }} -Dap.clientsecret=${{ secrets.AP_CLIENT_SECRET }} -DbusinessGroupId="bdc940d0-6b43-4d2b-9574-97dd755fda61" -DapplicationName="checkin-cicd-nj2022" -Denvironment="dev" -Dapi.id="18086605" -Dencrypt.key="secure12345" -Dclient_id="bace61a0bea24a299eecc414a913ffa9" -Dclient_secret="2EDE544ab6BE40d0B5bE4E4337d69667"     
